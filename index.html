@@ -1,0 +1,1796 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Java Swing UI-Only Reviewer</title>
+  <style>
+    :root {
+      --bg: #f3f4f6;
+      --panel: #ffffff;
+      --ink: #111827;
+      --muted: #6b7280;
+      --line: #d1d5db;
+      --accent: #1f4e79;
+      --soft: #eef5fb;
+      --editor: #ffffff;
+      --menu: #efefef;
+      --ok-bg: #ecfdf5;
+      --ok-line: #86efac;
+      --ok-text: #166534;
+      --warn-bg: #fff7ed;
+      --warn-line: #fdba74;
+      --warn-text: #9a3412;
+      --err-bg: #fef2f2;
+      --err-line: #fca5a5;
+      --err-text: #991b1b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+    }
+    .topbar {
+      background: linear-gradient(90deg, #1f4e79, #2f6da6);
+      color: white;
+      padding: 18px 22px;
+    }
+    .topbar h1 {
+      margin: 0;
+      font-size: 24px;
+    }
+    .topbar p {
+      margin: 6px 0 0;
+      font-size: 14px;
+      opacity: .95;
+    }
+    .wrap {
+      display: grid;
+      grid-template-columns: 370px 1fr 430px;
+      gap: 16px;
+      padding: 16px;
+      min-height: calc(100vh - 92px);
+    }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 8px 18px rgba(0,0,0,.05);
+    }
+    .panel h2 {
+      margin: 0;
+      font-size: 18px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+      background: #fafafa;
+    }
+    .scroll { height: calc(100vh - 152px); overflow: auto; }
+    .section { padding: 14px 16px; border-bottom: 1px solid #eef0f2; }
+    .section:last-child { border-bottom: none; }
+    .section h3 { margin: 0 0 8px; font-size: 15px; color: var(--accent); }
+    .section p, .section li { font-size: 13px; line-height: 1.5; color: #1f2937; }
+    .section ul { margin: 8px 0 0 18px; padding: 0; }
+    .tag {
+      display: inline-block;
+      margin: 4px 6px 0 0;
+      padding: 5px 8px;
+      font-size: 12px;
+      border-radius: 999px;
+      background: var(--soft);
+      border: 1px solid #cfe2f3;
+      color: #123a59;
+    }
+    pre {
+      margin: 8px 0 0;
+      padding: 10px;
+      background: #0f172a;
+      color: #e5e7eb;
+      border-radius: 8px;
+      overflow: auto;
+      font-size: 12px;
+      line-height: 1.45;
+      white-space: pre-wrap;
+    }
+    .mini {
+      background: #f8fafc;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 10px;
+      font-family: Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .controls {
+      padding: 12px 14px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      border-bottom: 1px solid var(--line);
+      background: #fafafa;
+    }
+    select, button {
+      font: inherit;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: white;
+    }
+    button {
+      cursor: pointer;
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+    button.secondary {
+      background: white;
+      color: var(--ink);
+      border-color: var(--line);
+    }
+    .editor-shell {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-height: 0;
+      height: auto;
+      padding: 0 0 12px;
+    }
+    .run-notice {
+      margin: 10px 14px 0;
+      padding: 10px 12px;
+      border-radius: 10px;
+      font-size: 13px;
+      line-height: 1.45;
+      border: 1px solid var(--line);
+    }
+    .run-notice.success {
+      background: var(--ok-bg);
+      border-color: var(--ok-line);
+      color: var(--ok-text);
+    }
+    .run-notice.warn {
+      background: var(--warn-bg);
+      border-color: var(--warn-line);
+      color: var(--warn-text);
+    }
+    .run-notice.error {
+      background: var(--err-bg);
+      border-color: var(--err-line);
+      color: var(--err-text);
+    }
+    .notepad {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .menu {
+      background: var(--menu);
+      border-bottom: 1px solid var(--line);
+      padding: 8px 12px;
+      font-size: 13px;
+    }
+    .menu span { margin-right: 18px; }
+    .editor-info {
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--line);
+      font-size: 12px;
+      color: var(--muted);
+      background: white;
+    }
+
+    .editor-pane {
+      display: grid;
+      grid-template-columns: 56px 1fr;
+      min-height: 420px;
+      max-height: 520px;
+      overflow: hidden;
+      flex: 1 1 auto;
+    }
+    .line-numbers {
+      margin: 0;
+      padding: 16px 8px 16px 0;
+      background: #f8fafc;
+      border-right: 1px solid var(--line);
+      color: #6b7280;
+      text-align: right;
+      font-family: Consolas, 'Courier New', monospace;
+      font-size: 14px;
+      line-height: 1.45;
+      overflow: auto;
+      user-select: none;
+    }
+    .line-num {
+      display: block;
+      padding-right: 10px;
+      min-height: 1.45em;
+    }
+    .line-num.error {
+      background: #fee2e2;
+      color: #991b1b;
+      font-weight: bold;
+      border-radius: 4px;
+    }
+    .line-num.warn {
+      background: #ffedd5;
+      color: #9a3412;
+      border-radius: 4px;
+    }
+
+    textarea {
+      width: 100%;
+      height: 100%;
+      border: none;
+      outline: none;
+      resize: none;
+      padding: 16px;
+      font-family: Consolas, 'Courier New', monospace;
+      font-size: 14px;
+      line-height: 1.45;
+      background: var(--editor);
+      color: #111827;
+      min-height: 420px;
+      overflow: auto;
+    }
+    .status {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 7px 12px;
+      border-top: 1px solid var(--line);
+      font-size: 12px;
+      background: #fafafa;
+      color: var(--muted);
+      flex-wrap: wrap;
+    }
+    .checker {
+      border-top: 1px solid var(--line);
+      background: #fff;
+      padding: 12px;
+      overflow: auto;
+      min-height: 220px;
+    }
+    .checker h3 {
+      margin: 0 0 8px;
+      font-size: 15px;
+      color: var(--accent);
+    }
+    .box-state {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin-bottom: 10px;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .state-ok { background: var(--ok-bg); border-color: var(--ok-line); color: var(--ok-text); }
+    .state-warn { background: var(--warn-bg); border-color: var(--warn-line); color: var(--warn-text); }
+    .state-err { background: var(--err-bg); border-color: var(--err-line); color: var(--err-text); }
+    .checker ul {
+      margin: 6px 0 0 18px;
+      padding: 0;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .checker li + li { margin-top: 4px; }
+    .jump-line {
+      font: inherit;
+      padding: 2px 8px;
+      margin-right: 6px;
+      border-radius: 999px;
+      border: 1px solid #cbd5e1;
+      background: #eff6ff;
+      color: #1d4ed8;
+      cursor: pointer;
+    }
+    .jump-line:hover {
+      background: #dbeafe;
+    }
+    .error-help {
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .preview-wrap { padding: 12px; }
+    .preview-note {
+      margin: 0 0 12px;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+    .swing-window {
+      border: 1px solid #9ca3af;
+      border-radius: 10px;
+      overflow: hidden;
+      background: #f3f4f6;
+      box-shadow: 0 8px 20px rgba(0,0,0,.08);
+    }
+    .swing-titlebar {
+      background: linear-gradient(#f8fafc, #e5e7eb);
+      border-bottom: 1px solid #cbd5e1;
+      padding: 8px 12px;
+      font-size: 13px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .dots { display: flex; gap: 6px; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; background: #cbd5e1; }
+    .swing-body { padding: 16px; background: #f8fafc; }
+    .swing-heading {
+      text-align: center;
+      font-weight: bold;
+      font-size: 20px;
+      margin-bottom: 16px;
+      color: #1f2937;
+    }
+    .grid-form {
+      display: grid;
+      grid-template-columns: 120px 1fr;
+      gap: 10px 10px;
+      align-items: center;
+    }
+    .s-label { font-size: 13px; }
+    .field, .combo, .area {
+      background: white;
+      border: 1px solid #9ca3af;
+      border-radius: 2px;
+      min-height: 30px;
+      padding: 6px 8px;
+      font-size: 13px;
+      color: #6b7280;
+    }
+    .area { min-height: 84px; }
+    .combo::after { content: '▾'; float: right; color: #4b5563; }
+    .button-row { text-align: center; margin-top: 14px; }
+    .s-btn {
+      display: inline-block;
+      min-width: 100px;
+      padding: 8px 14px;
+      border: 1px solid #6b7280;
+      background: linear-gradient(#ffffff, #e5e7eb);
+      border-radius: 4px;
+      font-size: 13px;
+    }
+    .options-row { display: flex; gap: 12px; flex-wrap: wrap; font-size: 13px; }
+    .check, .radio {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-right: 10px;
+    }
+    .box {
+      width: 14px; height: 14px;
+      border: 1px solid #6b7280;
+      background: white;
+      display: inline-block;
+      border-radius: 2px;
+    }
+    .circle { border-radius: 50%; }
+    .compile-box {
+      margin-top: 14px;
+      padding: 10px;
+      border: 1px dashed #94a3b8;
+      border-radius: 8px;
+      background: #f8fafc;
+      font-size: 12px;
+      color: #334155;
+      line-height: 1.5;
+    }
+    .summary-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .summary-card {
+      border: 1px solid #e5e7eb;
+      background: #f8fafc;
+      border-radius: 10px;
+      padding: 10px;
+      font-size: 12px;
+    }
+    @media (max-width: 1320px) {
+      .wrap { grid-template-columns: 340px 1fr; }
+      .preview-panel { grid-column: span 2; }
+    }
+    @media (max-width: 900px) {
+      .wrap { grid-template-columns: 1fr; }
+      .preview-panel { grid-column: span 1; }
+      .scroll, .editor-shell { height: auto; }
+      .editor-pane { max-height: none; }
+      .summary-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <h1>Java Swing UI-Only Reviewer</h1>
+    <p>Study the syntax, memorize the patterns, type Java code in a Notepad-style editor, check common mistakes, and view a possible output preview.</p>
+  </div>
+
+  <div class="wrap">
+    <section class="panel">
+      <h2>Reviewer Notes</h2>
+      <div class="scroll">
+        <div class="section">
+          <h3>1. Universal pattern to remember</h3>
+          <ul>
+            <li><b>JFrame</b> = main window</li>
+            <li><b>JPanel</b> = container</li>
+            <li><b>JLabel</b> = text label</li>
+            <li><b>JTextField</b> = text box</li>
+            <li><b>JComboBox</b> = dropdown list</li>
+            <li><b>JButton</b> = button</li>
+            <li><b>JTextArea</b> = large output area</li>
+            <li><b>GridLayout</b> = easiest form layout</li>
+            <li><b>BorderLayout</b> = title + center + button</li>
+          </ul>
+          <p>Most UI-only Swing exam problems are just this pattern: create the frame, choose a layout, add labels and inputs, then show the window.</p>
+        </div>
+
+        <div class="section">
+          <h3>2. What to memorize first</h3>
+          <div class="tag">import javax.swing.*;</div>
+          <div class="tag">import java.awt.*;</div>
+          <div class="tag">extends JFrame</div>
+          <div class="tag">main method</div>
+          <div class="tag">constructor</div>
+          <div class="tag">setTitle()</div>
+          <div class="tag">setSize()</div>
+          <div class="tag">setDefaultCloseOperation()</div>
+          <div class="tag">setLocationRelativeTo(null)</div>
+          <div class="tag">setLayout()</div>
+          <div class="tag">add()</div>
+          <div class="tag">setVisible(true)</div>
+        </div>
+
+        <div class="section">
+          <h3>3. Universal basic skeleton</h3>
+          <pre>import javax.swing.*;
+import java.awt.*;
+
+class SampleUI extends JFrame
+{
+    JLabel firstLabel, secondLabel, thirdLabel, resultLabel;
+    JTextField firstField, secondField, thirdField, resultField;
+    JButton computeButton;
+
+    public static void main(String[] args)
+    {
+        new SampleUI();
+    }
+
+    public SampleUI()
+    {
+        setTitle("Sample UI");
+        setSize(500, 350);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
+        setLayout(new GridLayout(5, 2, 10, 10));
+
+        firstLabel = new JLabel("First Input:");
+        secondLabel = new JLabel("Second Input:");
+        thirdLabel = new JLabel("Third Input:");
+        resultLabel = new JLabel("Result:");
+
+        firstField = new JTextField();
+        secondField = new JTextField();
+        thirdField = new JTextField();
+        resultField = new JTextField();
+
+        computeButton = new JButton("Compute");
+
+        add(firstLabel);
+        add(firstField);
+        add(secondLabel);
+        add(secondField);
+        add(thirdLabel);
+        add(thirdField);
+        add(resultLabel);
+        add(resultField);
+        add(new JLabel(""));
+        add(computeButton);
+
+        setVisible(true);
+    }
+}</pre>
+        </div>
+
+        <div class="section">
+          <h3>4. Fastest template for label + text field problems</h3>
+          <p>Use this when the instruction says: create labels, text fields, result field, and a compute button.</p>
+          <pre>setLayout(new GridLayout(5, 2, 10, 10));
+
+add(new JLabel("Input 1:"));
+add(new JTextField());
+
+add(new JLabel("Input 2:"));
+add(new JTextField());
+
+add(new JLabel("Input 3:"));
+add(new JTextField());
+
+add(new JLabel("Answer:"));
+add(new JTextField());
+
+add(new JLabel(""));
+add(new JButton("Compute"));</pre>
+        </div>
+
+        <div class="section">
+          <h3>5. Fastest template for dropdown problems</h3>
+          <p>Use this when the instruction says: select options from combo boxes or use dropdown list for the first, second, and third choices.</p>
+          <pre>String[] choices = {"Black", "Brown", "Red", "Orange", "Yellow", "Green", "Blue", "Violet", "Gray", "White"};
+
+add(new JLabel("First Band:"));
+add(new JComboBox&lt;String&gt;(choices));
+
+add(new JLabel("Second Band:"));
+add(new JComboBox&lt;String&gt;(choices));
+
+add(new JLabel("Third Band:"));
+add(new JComboBox&lt;String&gt;(choices));
+
+add(new JLabel("Result:"));
+add(new JTextField());
+
+add(new JLabel(""));
+add(new JButton("Compute"));</pre>
+        </div>
+
+        <div class="section">
+          <h3>6. Template for a cleaner modern-looking UI</h3>
+          <p>Use a title label at the top, a form panel in the center, and a button panel at the bottom.</p>
+          <pre>JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
+mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+JLabel titleLabel = new JLabel("EXAM USER INTERFACE", JLabel.CENTER);
+titleLabel.setFont(new Font("Arial", Font.BOLD, 20));
+
+JPanel formPanel = new JPanel(new GridLayout(4, 2, 10, 10));
+JPanel buttonPanel = new JPanel();
+buttonPanel.add(new JButton("Submit"));
+
+mainPanel.add(titleLabel, BorderLayout.NORTH);
+mainPanel.add(formPanel, BorderLayout.CENTER);
+mainPanel.add(buttonPanel, BorderLayout.SOUTH);
+
+add(mainPanel);</pre>
+        </div>
+
+        <div class="section">
+          <h3>7. Template with TextArea output</h3>
+          <p>Use this when the problem says output, summary, receipt, report, or multi-line result.</p>
+          <pre>JTextArea outputArea = new JTextArea();
+outputArea.setEditable(false);
+JScrollPane scrollPane = new JScrollPane(outputArea);
+
+add(scrollPane, BorderLayout.CENTER);</pre>
+          <p>Important memory line: large output area usually needs <b>JScrollPane</b>.</p>
+        </div>
+
+        <div class="section">
+          <h3>8. Template with radio buttons and check boxes</h3>
+          <pre>JRadioButton maleButton = new JRadioButton("Male");
+JRadioButton femaleButton = new JRadioButton("Female");
+ButtonGroup genderGroup = new ButtonGroup();
+genderGroup.add(maleButton);
+genderGroup.add(femaleButton);
+
+JCheckBox musicBox = new JCheckBox("Music");
+JCheckBox sportsBox = new JCheckBox("Sports");
+JCheckBox readingBox = new JCheckBox("Reading");</pre>
+          <p>Use radio buttons for one choice only. Use check boxes for many choices.</p>
+        </div>
+
+        <div class="section">
+          <h3>9. Color design cheat sheet</h3>
+          <pre>getContentPane().setBackground(new Color(245, 245, 245));
+titleLabel.setForeground(new Color(25, 55, 85));
+computeButton.setBackground(new Color(70, 130, 180));
+computeButton.setForeground(Color.WHITE);
+formPanel.setBackground(Color.WHITE);
+buttonPanel.setBackground(Color.WHITE);
+resultField.setEditable(false);
+mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));</pre>
+        </div>
+
+        <div class="section">
+          <h3>10. Common components and their use</h3>
+          <div class="mini">JLabel = text label
+JTextField = one-line input
+JButton = button
+JComboBox = dropdown list
+JTextArea = multi-line input/output
+JPanel = container panel
+JRadioButton = one choice
+JCheckBox = many choices
+JScrollPane = scroll support for text area</div>
+          <pre>JLabel nameLabel = new JLabel("Name:");
+JTextField nameField = new JTextField();
+JButton submitButton = new JButton("Submit");
+String[] items = {"Option 1", "Option 2", "Option 3"};
+JComboBox&lt;String&gt; combo = new JComboBox&lt;&gt;(items);
+JTextArea area = new JTextArea();
+JScrollPane scrollPane = new JScrollPane(area);</pre>
+        </div>
+
+        <div class="section">
+          <h3>11. Layout cheat sheet</h3>
+          <ul>
+            <li><b>GridLayout</b> = best for forms</li>
+            <li><b>BorderLayout</b> = title on top, form in center, button below</li>
+            <li><b>FlowLayout</b> = best for button panels</li>
+          </ul>
+          <pre>setLayout(new GridLayout(4, 2, 10, 10));
+setLayout(new BorderLayout(10, 10));
+JPanel buttonPanel = new JPanel();
+buttonPanel.setLayout(new FlowLayout());</pre>
+        </div>
+
+        <div class="section">
+          <h3>12. Quick formula for counting GridLayout rows</h3>
+          <ul>
+            <li><b>3 inputs + result + button</b> → <b>GridLayout(5, 2, 10, 10)</b></li>
+            <li><b>2 inputs + result + button</b> → <b>GridLayout(4, 2, 10, 10)</b></li>
+            <li><b>4 labels and 4 fields</b> → <b>4 rows, 2 columns</b> inside a form panel</li>
+          </ul>
+        </div>
+
+        <div class="section">
+          <h3>13. How to translate the question fast during exam</h3>
+          <ul>
+            <li><b>3 labels + 3 text fields + result + button</b> → pure text-field form</li>
+            <li><b>3 labels + dropdown list</b> → replace <b>JTextField</b> with <b>JComboBox</b></li>
+            <li><b>Student registration form</b> → text fields + combo box + possible radio buttons</li>
+            <li><b>Reservation / order / billing / calculator</b> → labels + fields + button</li>
+            <li><b>Receipt or report output</b> → use <b>JTextArea</b> with <b>JScrollPane</b></li>
+          </ul>
+        </div>
+
+        <div class="section">
+          <h3>14. Plug-and-play exam template</h3>
+          <pre>import javax.swing.*;
+import java.awt.*;
+
+class ExamUI extends JFrame
+{
+    JLabel label1, label2, label3, label4;
+    JTextField field1, field2, field3, field4;
+    JButton button1;
+
+    public static void main(String[] args)
+    {
+        new ExamUI();
+    }
+
+    public ExamUI()
+    {
+        setTitle("Exam UI");
+        setSize(500, 350);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
+
+        JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        JPanel formPanel = new JPanel(new GridLayout(4, 2, 10, 10));
+
+        label1 = new JLabel("Label 1:");
+        label2 = new JLabel("Label 2:");
+        label3 = new JLabel("Label 3:");
+        label4 = new JLabel("Result:");
+
+        field1 = new JTextField();
+        field2 = new JTextField();
+        field3 = new JTextField();
+        field4 = new JTextField();
+
+        formPanel.add(label1);
+        formPanel.add(field1);
+        formPanel.add(label2);
+        formPanel.add(field2);
+        formPanel.add(label3);
+        formPanel.add(field3);
+        formPanel.add(label4);
+        formPanel.add(field4);
+
+        JPanel buttonPanel = new JPanel();
+        button1 = new JButton("Compute");
+        buttonPanel.add(button1);
+
+        mainPanel.add(formPanel, BorderLayout.CENTER);
+        mainPanel.add(buttonPanel, BorderLayout.SOUTH);
+
+        add(mainPanel);
+        setVisible(true);
+    }
+}</pre>
+        </div>
+
+        <div class="section">
+          <h3>15. Plug-and-play ComboBox exam template</h3>
+          <pre>String[] options = {"Option 1", "Option 2", "Option 3", "Option 4"};
+
+JComboBox&lt;String&gt; combo1 = new JComboBox&lt;&gt;(options);
+JComboBox&lt;String&gt; combo2 = new JComboBox&lt;&gt;(options);
+JComboBox&lt;String&gt; combo3 = new JComboBox&lt;&gt;(options);</pre>
+          <p>Use this when the problem is about bands, categories, weather, road type, or any selectable choices.</p>
+        </div>
+
+        <div class="section">
+          <h3>16. Most common exam edits you only replace</h3>
+          <ul>
+            <li>class name</li>
+            <li>frame title</li>
+            <li>labels</li>
+            <li>dropdown choices</li>
+            <li>button text</li>
+          </ul>
+          <pre>class ResistanceUI extends JFrame
+setTitle("Resistance Calculator");
+firstLabel = new JLabel("First Band:");
+computeButton = new JButton("Compute");</pre>
+        </div>
+
+        <div class="section">
+          <h3>17. Example conversion based on common problems</h3>
+          <ul>
+            <li><b>Resistance color UI</b> → 3 combo boxes + result field + button</li>
+            <li><b>Speed Distance Time UI</b> → 3 text fields + answer + button</li>
+            <li><b>Student Registration Form</b> → name, age, course, gender, address, submit</li>
+            <li><b>Safe Speed Calculator</b> → weather, road type, visibility, result, button</li>
+          </ul>
+        </div>
+
+        <div class="section">
+          <h3>18. Quick memorization version</h3>
+          <pre>import javax.swing.*;
+import java.awt.*;
+
+class MyUI extends JFrame
+{
+    public static void main(String[] args)
+    {
+        new MyUI();
+    }
+
+    public MyUI()
+    {
+        setTitle("My UI");
+        setSize(500, 350);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
+        setLayout(new GridLayout(5, 2, 10, 10));
+
+        add(new JLabel("Label 1:"));
+        add(new JTextField());
+        add(new JLabel("Label 2:"));
+        add(new JTextField());
+        add(new JLabel("Label 3:"));
+        add(new JTextField());
+        add(new JLabel("Result:"));
+        add(new JTextField());
+        add(new JLabel(""));
+        add(new JButton("Compute"));
+
+        setVisible(true);
+    }
+}</pre>
+        </div>
+
+        <div class="section">
+          <h3>19. One-line reminders</h3>
+          <div class="mini">JFrame = window
+JPanel = section/container
+JLabel = text
+JTextField = single-line input
+JTextArea = multi-line input/output
+JButton = button
+JComboBox = dropdown
+JRadioButton = one choice
+JCheckBox = many choices
+GridLayout = form table
+BorderLayout = top / center / bottom layout</div>
+        </div>
+
+        <div class="section">
+          <h3>20. What not to add in a UI-only exam</h3>
+          <ul>
+            <li>Do not add <b>implements ActionListener</b></li>
+            <li>Do not add <b>addActionListener(this)</b></li>
+            <li>Do not add <b>actionPerformed()</b></li>
+            <li>Only show the user interface unless the teacher asks for events</li>
+          </ul>
+        </div>
+
+        <div class="section">
+          <h3>21. Notepad compile and run</h3>
+          <pre>File name must match class name.
+
+Example:
+class StudentForm extends JFrame
+Save as: StudentForm.java
+
+Compile:
+javac StudentForm.java
+
+Run:
+java StudentForm</pre>
+        </div>
+
+        <div class="section">
+          <h3>22. Exam survival tips</h3>
+          <ul>
+            <li>If you panic, use only <b>JFrame, JLabel, JTextField, JButton, JComboBox, GridLayout</b>.</li>
+            <li>If the result should not be typed, use <b>resultField.setEditable(false);</b></li>
+            <li>If you want cleaner output, use a title label on top, form panel in center, button panel below.</li>
+            <li>During the exam, usually you only change the <b>class name, title, labels, dropdown choices, and button text</b>.</li>
+          </ul>
+        </div>
+
+        <div class="section">
+          <h3>23. Memorization drill</h3>
+          <ul>
+            <li>What import is needed for Swing? <b>import javax.swing.*;</b></li>
+            <li>What import is needed for layouts, fonts, and colors? <b>import java.awt.*;</b></li>
+            <li>What word makes the class a frame? <b>extends JFrame</b></li>
+            <li>What shows the frame? <b>setVisible(true);</b></li>
+            <li>What centers the window? <b>setLocationRelativeTo(null);</b></li>
+            <li>What layout is easiest for forms? <b>GridLayout</b></li>
+          </ul>
+        </div>
+      </div>      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Notepad-Style Java Editor</h2>
+      <div class="controls">
+        <label for="templateSelect"><b>Template:</b></label>
+        <select id="templateSelect"></select>
+        <button id="loadBtn">Load Template</button>
+        <button id="runBtn">Run</button>
+        <button class="secondary" id="copyBtn">Copy Code</button>
+      </div>
+      <div id="runNotice" class="run-notice warn"><b>Ready</b> — Load a template or type Java code, then click <b>Run</b>. After that, the preview updates and the error panel below will show where your mistakes are.</div>
+      <div class="editor-shell">
+        <div class="notepad">
+          <div class="menu"><span>File</span><span>Edit</span><span>Format</span><span>View</span><span>Help</span></div>
+          <div class="editor-info">Type or edit the Java code here like Notepad, then click Run to see the possible output preview and exact error lines.</div>
+          <div class="editor-pane"><pre class="line-numbers" id="lineNumbers"></pre><textarea id="editor" spellcheck="false"></textarea></div>
+          <div class="status">
+            <span id="classNameText">Class: -</span>
+            <span id="titleText">Title: -</span>
+            <span>Mode: Java Swing UI Only</span>
+          </div>
+        </div>
+        <div class="checker" id="checker"><h3>Code Checker</h3><div class="box-state state-warn"><b>Ready</b><br>Type or load Java code, then click <b>Run</b> to preview the UI and locate your errors.</div></div>
+      </div>
+    </section>
+
+    <section class="panel preview-panel">
+      <h2>Possible Output Preview</h2>
+      <div class="preview-wrap">
+        <p class="preview-note">This is a <b>simulation</b> of what your Java Swing UI may look like after running the code. It is not a real Java compiler inside the browser, but it updates from your current code and template.</p>
+        <div id="previewArea"><div class="compile-box">Click <b>Run</b> to generate the possible Swing output preview from your current code.</div></div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const templates = {
+      skeleton: {
+        label: 'Universal Basic Skeleton',
+        className: 'SampleUI',
+        code: `import javax.swing.*;
+import java.awt.*;
+
+class SampleUI extends JFrame
+{
+    JLabel firstLabel, secondLabel, thirdLabel, resultLabel;
+    JTextField firstField, secondField, thirdField, resultField;
+    JButton computeButton;
+
+    public static void main(String[] args)
+    {
+        new SampleUI();
+    }
+
+    public SampleUI()
+    {
+        setTitle("Sample UI");
+        setSize(500, 350);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
+        setLayout(new GridLayout(5, 2, 10, 10));
+
+        firstLabel = new JLabel("First Input:");
+        secondLabel = new JLabel("Second Input:");
+        thirdLabel = new JLabel("Third Input:");
+        resultLabel = new JLabel("Result:");
+
+        firstField = new JTextField();
+        secondField = new JTextField();
+        thirdField = new JTextField();
+        resultField = new JTextField();
+
+        computeButton = new JButton("Compute");
+
+        add(firstLabel);
+        add(firstField);
+        add(secondLabel);
+        add(secondField);
+        add(thirdLabel);
+        add(thirdField);
+        add(resultLabel);
+        add(resultField);
+        add(new JLabel(""));
+        add(computeButton);
+
+        setVisible(true);
+    }
+}`
+      },
+      universal: {
+        label: 'Pure TextField Form',
+        className: 'MyUI',
+        code: `import javax.swing.*;
+import java.awt.*;
+
+class MyUI extends JFrame
+{
+    public static void main(String[] args)
+    {
+        new MyUI();
+    }
+
+    public MyUI()
+    {
+        setTitle("My UI");
+        setSize(500, 350);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
+        setLayout(new GridLayout(5, 2, 10, 10));
+
+        add(new JLabel("Label 1:"));
+        add(new JTextField());
+
+        add(new JLabel("Label 2:"));
+        add(new JTextField());
+
+        add(new JLabel("Label 3:"));
+        add(new JTextField());
+
+        add(new JLabel("Result:"));
+        add(new JTextField());
+
+        add(new JLabel(""));
+        add(new JButton("Compute"));
+
+        setVisible(true);
+    }
+}`
+      },
+      dropdown: {
+        label: 'Dropdown Form',
+        className: 'DropdownUI',
+        code: `import javax.swing.*;
+import java.awt.*;
+
+class DropdownUI extends JFrame
+{
+    JLabel firstLabel, secondLabel, thirdLabel, resultLabel;
+    JComboBox<String> firstCombo, secondCombo, thirdCombo;
+    JTextField resultField;
+    JButton computeButton;
+
+    String[] choices = {"Black", "Brown", "Red", "Orange", "Yellow", "Green", "Blue", "Violet", "Gray", "White"};
+
+    public static void main(String[] args)
+    {
+        new DropdownUI();
+    }
+
+    public DropdownUI()
+    {
+        setTitle("Dropdown UI");
+        setSize(500, 300);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
+        setLayout(new GridLayout(5, 2, 10, 10));
+
+        firstLabel = new JLabel("First Band:");
+        secondLabel = new JLabel("Second Band:");
+        thirdLabel = new JLabel("Third Band:");
+        resultLabel = new JLabel("Resistance:");
+
+        firstCombo = new JComboBox<>(choices);
+        secondCombo = new JComboBox<>(choices);
+        thirdCombo = new JComboBox<>(choices);
+
+        resultField = new JTextField();
+        computeButton = new JButton("Compute");
+
+        add(firstLabel);
+        add(firstCombo);
+        add(secondLabel);
+        add(secondCombo);
+        add(thirdLabel);
+        add(thirdCombo);
+        add(resultLabel);
+        add(resultField);
+        add(new JLabel(""));
+        add(computeButton);
+
+        setVisible(true);
+    }
+}`
+      },
+      modern: {
+        label: 'Title + Panel Layout',
+        className: 'ModernUI',
+        code: `import javax.swing.*;
+import java.awt.*;
+
+class ModernUI extends JFrame
+{
+    JLabel titleLabel;
+    JLabel nameLabel, ageLabel, addressLabel, resultLabel;
+    JTextField nameField, ageField, addressField, resultField;
+    JButton submitButton;
+
+    public static void main(String[] args)
+    {
+        new ModernUI();
+    }
+
+    public ModernUI()
+    {
+        setTitle("Modern Form UI");
+        setSize(550, 350);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
+
+        JPanel mainPanel = new JPanel(new BorderLayout(15, 15));
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        titleLabel = new JLabel("MODERN FORM USER INTERFACE", JLabel.CENTER);
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 20));
+
+        JPanel formPanel = new JPanel(new GridLayout(4, 2, 10, 10));
+
+        nameLabel = new JLabel("Name:");
+        ageLabel = new JLabel("Age:");
+        addressLabel = new JLabel("Address:");
+        resultLabel = new JLabel("Result:");
+
+        nameField = new JTextField();
+        ageField = new JTextField();
+        addressField = new JTextField();
+        resultField = new JTextField();
+        resultField.setEditable(false);
+
+        formPanel.add(nameLabel);
+        formPanel.add(nameField);
+        formPanel.add(ageLabel);
+        formPanel.add(ageField);
+        formPanel.add(addressLabel);
+        formPanel.add(addressField);
+        formPanel.add(resultLabel);
+        formPanel.add(resultField);
+
+        JPanel buttonPanel = new JPanel();
+        submitButton = new JButton("Submit");
+        buttonPanel.add(submitButton);
+
+        mainPanel.add(titleLabel, BorderLayout.NORTH);
+        mainPanel.add(formPanel, BorderLayout.CENTER);
+        mainPanel.add(buttonPanel, BorderLayout.SOUTH);
+
+        add(mainPanel);
+        setVisible(true);
+    }
+}`
+      },
+      textarea: {
+        label: 'TextArea Output Form',
+        className: 'TextAreaUI',
+        code: `import javax.swing.*;
+import java.awt.*;
+
+class TextAreaUI extends JFrame
+{
+    JLabel nameLabel, quantityLabel;
+    JTextField nameField, quantityField;
+    JTextArea outputArea;
+    JButton generateButton;
+
+    public static void main(String[] args)
+    {
+        new TextAreaUI();
+    }
+
+    public TextAreaUI()
+    {
+        setTitle("TextArea UI");
+        setSize(500, 400);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
+        setLayout(new BorderLayout(10, 10));
+
+        JPanel topPanel = new JPanel(new GridLayout(2, 2, 10, 10));
+
+        nameLabel = new JLabel("Name:");
+        quantityLabel = new JLabel("Quantity:");
+        nameField = new JTextField();
+        quantityField = new JTextField();
+
+        topPanel.add(nameLabel);
+        topPanel.add(nameField);
+        topPanel.add(quantityLabel);
+        topPanel.add(quantityField);
+
+        outputArea = new JTextArea();
+        outputArea.setEditable(false);
+        JScrollPane scrollPane = new JScrollPane(outputArea);
+
+        generateButton = new JButton("Generate");
+
+        add(topPanel, BorderLayout.NORTH);
+        add(scrollPane, BorderLayout.CENTER);
+        add(generateButton, BorderLayout.SOUTH);
+
+        setVisible(true);
+    }
+}`
+      },
+      choice: {
+        label: 'Radio Button + CheckBox Form',
+        className: 'ChoiceUI',
+        code: `import javax.swing.*;
+import java.awt.*;
+
+class ChoiceUI extends JFrame
+{
+    JLabel nameLabel, genderLabel;
+    JTextField nameField;
+    JRadioButton maleButton, femaleButton;
+    JCheckBox musicBox, sportsBox, readingBox;
+    JButton submitButton;
+
+    public static void main(String[] args)
+    {
+        new ChoiceUI();
+    }
+
+    public ChoiceUI()
+    {
+        setTitle("Choice UI");
+        setSize(500, 350);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
+
+        JPanel mainPanel = new JPanel(new GridLayout(5, 2, 10, 10));
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        nameLabel = new JLabel("Name:");
+        genderLabel = new JLabel("Gender:");
+        nameField = new JTextField();
+
+        maleButton = new JRadioButton("Male");
+        femaleButton = new JRadioButton("Female");
+
+        ButtonGroup genderGroup = new ButtonGroup();
+        genderGroup.add(maleButton);
+        genderGroup.add(femaleButton);
+
+        JPanel genderPanel = new JPanel();
+        genderPanel.add(maleButton);
+        genderPanel.add(femaleButton);
+
+        musicBox = new JCheckBox("Music");
+        sportsBox = new JCheckBox("Sports");
+        readingBox = new JCheckBox("Reading");
+
+        JPanel hobbyPanel = new JPanel();
+        hobbyPanel.add(musicBox);
+        hobbyPanel.add(sportsBox);
+        hobbyPanel.add(readingBox);
+
+        submitButton = new JButton("Submit");
+
+        mainPanel.add(nameLabel);
+        mainPanel.add(nameField);
+        mainPanel.add(genderLabel);
+        mainPanel.add(genderPanel);
+        mainPanel.add(new JLabel("Hobbies:"));
+        mainPanel.add(hobbyPanel);
+        mainPanel.add(new JLabel(""));
+        mainPanel.add(submitButton);
+
+        add(mainPanel);
+        setVisible(true);
+    }
+}`
+      },
+      exam: {
+        label: 'Plug-and-Play Exam Template',
+        className: 'ExamUI',
+        code: `import javax.swing.*;
+import java.awt.*;
+
+class ExamUI extends JFrame
+{
+    JLabel titleLabel;
+    JLabel label1, label2, label3, label4;
+    JTextField field1, field2, field3, field4;
+    JButton button1;
+
+    public static void main(String[] args)
+    {
+        new ExamUI();
+    }
+
+    public ExamUI()
+    {
+        setTitle("Exam UI");
+        setSize(500, 350);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
+
+        JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        titleLabel = new JLabel("EXAM USER INTERFACE", JLabel.CENTER);
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 20));
+
+        JPanel formPanel = new JPanel(new GridLayout(4, 2, 10, 10));
+
+        label1 = new JLabel("Label 1:");
+        label2 = new JLabel("Label 2:");
+        label3 = new JLabel("Label 3:");
+        label4 = new JLabel("Result:");
+
+        field1 = new JTextField();
+        field2 = new JTextField();
+        field3 = new JTextField();
+        field4 = new JTextField();
+
+        formPanel.add(label1);
+        formPanel.add(field1);
+        formPanel.add(label2);
+        formPanel.add(field2);
+        formPanel.add(label3);
+        formPanel.add(field3);
+        formPanel.add(label4);
+        formPanel.add(field4);
+
+        JPanel buttonPanel = new JPanel();
+        button1 = new JButton("Compute");
+        buttonPanel.add(button1);
+
+        mainPanel.add(titleLabel, BorderLayout.NORTH);
+        mainPanel.add(formPanel, BorderLayout.CENTER);
+        mainPanel.add(buttonPanel, BorderLayout.SOUTH);
+
+        add(mainPanel);
+        setVisible(true);
+    }
+}`
+      },
+      examcombo: {
+        label: 'Plug-and-Play Combo Exam Template',
+        className: 'ExamComboUI',
+        code: `import javax.swing.*;
+import java.awt.*;
+
+class ExamComboUI extends JFrame
+{
+    JLabel titleLabel;
+    JLabel label1, label2, label3, resultLabel;
+    JComboBox<String> combo1, combo2, combo3;
+    JTextField resultField;
+    JButton computeButton;
+
+    String[] options = {"Option 1", "Option 2", "Option 3", "Option 4"};
+
+    public static void main(String[] args)
+    {
+        new ExamComboUI();
+    }
+
+    public ExamComboUI()
+    {
+        setTitle("Exam Combo UI");
+        setSize(500, 350);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
+
+        JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        titleLabel = new JLabel("EXAM COMBOBOX INTERFACE", JLabel.CENTER);
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 20));
+
+        JPanel formPanel = new JPanel(new GridLayout(4, 2, 10, 10));
+
+        label1 = new JLabel("First:");
+        label2 = new JLabel("Second:");
+        label3 = new JLabel("Third:");
+        resultLabel = new JLabel("Result:");
+
+        combo1 = new JComboBox<>(options);
+        combo2 = new JComboBox<>(options);
+        combo3 = new JComboBox<>(options);
+        resultField = new JTextField();
+
+        formPanel.add(label1);
+        formPanel.add(combo1);
+        formPanel.add(label2);
+        formPanel.add(combo2);
+        formPanel.add(label3);
+        formPanel.add(combo3);
+        formPanel.add(resultLabel);
+        formPanel.add(resultField);
+
+        JPanel buttonPanel = new JPanel();
+        computeButton = new JButton("Compute");
+        buttonPanel.add(computeButton);
+
+        mainPanel.add(titleLabel, BorderLayout.NORTH);
+        mainPanel.add(formPanel, BorderLayout.CENTER);
+        mainPanel.add(buttonPanel, BorderLayout.SOUTH);
+
+        add(mainPanel);
+        setVisible(true);
+    }
+}`
+      },
+      quick: {
+        label: 'Quick Memorization Version',
+        className: 'MyUI',
+        code: `import javax.swing.*;
+import java.awt.*;
+
+class MyUI extends JFrame
+{
+    public static void main(String[] args)
+    {
+        new MyUI();
+    }
+
+    public MyUI()
+    {
+        setTitle("My UI");
+        setSize(500, 350);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
+        setLayout(new GridLayout(5, 2, 10, 10));
+
+        add(new JLabel("Label 1:"));
+        add(new JTextField());
+        add(new JLabel("Label 2:"));
+        add(new JTextField());
+        add(new JLabel("Label 3:"));
+        add(new JTextField());
+        add(new JLabel("Result:"));
+        add(new JTextField());
+        add(new JLabel(""));
+        add(new JButton("Compute"));
+
+        setVisible(true);
+    }
+}`
+      }
+    };
+
+    const templateSelect = document.getElementById('templateSelect');
+    const editor = document.getElementById('editor');
+    const lineNumbers = document.getElementById('lineNumbers');
+    const previewArea = document.getElementById('previewArea');
+    const classNameText = document.getElementById('classNameText');
+    const titleText = document.getElementById('titleText');
+    const loadBtn = document.getElementById('loadBtn');
+    const runBtn = document.getElementById('runBtn');
+    const copyBtn = document.getElementById('copyBtn');
+    const checker = document.getElementById('checker');
+    const runNotice = document.getElementById('runNotice');
+
+    Object.entries(templates).forEach(([key, value]) => {
+      const opt = document.createElement('option');
+      opt.value = key;
+      opt.textContent = value.label;
+      templateSelect.appendChild(opt);
+    });
+
+    function countMatches(text, char) {
+      return [...text].filter(c => c === char).length;
+    }
+
+    function findQuotedStrings(code) {
+      const matches = [...code.matchAll(/"([^"]*)"/g)];
+      return matches.map(m => m[1]);
+    }
+
+    function extractTitle(code) {
+      const match = code.match(/setTitle\s*\(\s*"([^"]*)"\s*\)/);
+      return match ? match[1] : '-';
+    }
+
+    function extractClassName(code) {
+      const match = code.match(/class\s+([A-Za-z_]\w*)/);
+      return match ? match[1] : '-';
+    }
+
+    function findConstructorName(code) {
+      const match = code.match(/public\s+([A-Za-z_]\w*)\s*\(\s*\)\s*\{/);
+      return match ? match[1] : '-';
+    }
+
+    function extractLayout(code) {
+
+      const m = code.match(/new\s+(GridLayout|BorderLayout|FlowLayout)\s*\(/);
+      return m ? m[1] : '-';
+    }
+
+    function escapeHtml(text) {
+      return text.replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+    }
+
+    function getAddLabels(code) {
+      return [...code.matchAll(/add\s*\(\s*new\s+JLabel\s*\(\s*"([^"]*)"\s*\)\s*\)/g)].map(m => m[1]);
+    }
+
+    function getButtons(code) {
+      const inline = [...code.matchAll(/add\s*\(\s*new\s+JButton\s*\(\s*"([^"]*)"\s*\)\s*\)/g)].map(m => m[1]);
+      const vars = [...code.matchAll(/\b\w+\s*=\s*new\s+JButton\s*\(\s*"([^"]*)"\s*\)/g)].map(m => m[1]);
+      return [...inline, ...vars];
+    }
+
+
+    function getLineNumberFromIndex(code, index) {
+      if (index == null || index < 0) return 1;
+      return code.slice(0, index).split('\n').length;
+    }
+
+    function addIssue(list, lineSet, message, line) {
+      if (line) {
+        list.push(`Line ${line}: ${message}`);
+        lineSet.add(line);
+      } else {
+        list.push(message);
+      }
+    }
+
+    function findUnmatchedPairs(code, openChar, closeChar) {
+      const stack = [];
+      const unmatchedLines = [];
+      let inString = false;
+
+      for (let i = 0; i < code.length; i++) {
+        const ch = code[i];
+        const prev = code[i - 1];
+
+        if (ch === '"' && prev !== '\\') {
+          inString = !inString;
+        }
+        if (inString) continue;
+
+        if (ch === openChar) {
+          stack.push(getLineNumberFromIndex(code, i));
+        } else if (ch === closeChar) {
+          if (stack.length) {
+            stack.pop();
+          } else {
+            unmatchedLines.push(getLineNumberFromIndex(code, i));
+          }
+        }
+      }
+
+      return { extraCloseLines: unmatchedLines, extraOpenLines: stack };
+    }
+
+    function updateLineNumbers(issueLines = {}) {
+      const errorLines = issueLines.errors || new Set();
+      const warningLines = issueLines.warnings || new Set();
+      const lineCount = Math.max(1, editor.value.split('\n').length);
+      const rows = [];
+
+      for (let i = 1; i <= lineCount; i++) {
+        let cls = 'line-num';
+        if (errorLines.has(i)) cls += ' error';
+        else if (warningLines.has(i)) cls += ' warn';
+        rows.push(`<span class="${cls}">${i}</span>`);
+      }
+
+      lineNumbers.innerHTML = rows.join('');
+      lineNumbers.scrollTop = editor.scrollTop;
+    }
+
+    function updateEditorMeta() {
+      const code = editor.value;
+      classNameText.textContent = 'Class: ' + extractClassName(code);
+      titleText.textContent = 'Title: ' + extractTitle(code);
+      updateLineNumbers();
+    }
+
+    function showRunNotice(type, html) {
+      runNotice.className = `run-notice ${type}`;
+      runNotice.innerHTML = html;
+    }
+
+    function scrollEditorToLine(line) {
+      const lineHeight = parseFloat(getComputedStyle(editor).lineHeight) || 20;
+      const paddingTop = parseFloat(getComputedStyle(editor).paddingTop) || 0;
+      editor.scrollTop = Math.max(0, ((line - 1) * lineHeight) - (lineHeight * 2) + paddingTop);
+      const parts = editor.value.split('\n');
+      let start = 0;
+      for (let i = 0; i < line - 1 && i < parts.length; i++) start += parts[i].length + 1;
+      const end = start + (parts[line - 1] ? parts[line - 1].length : 0);
+      editor.focus();
+      editor.setSelectionRange(start, end);
+      updateLineNumbers();
+    }
+
+    function formatIssue(issue) {
+      const m = issue.match(/^Line\s+(\d+):\s+(.*)$/);
+      if (!m) return `<li>${escapeHtml(issue)}</li>`;
+      return `<li><button type="button" class="jump-line" data-line="${m[1]}">Line ${m[1]}</button>${escapeHtml(m[2])}</li>`;
+    }
+
+    function markNeedsRun() {
+      showRunNotice('warn', '<b>Run needed</b> — Your code changed. Click <b>Run</b> to refresh the preview and show the latest error lines.');
+      checker.innerHTML = `
+        <h3>Code Checker</h3>
+        <div class="box-state state-warn"><b>Run needed</b><br>Your code changed. Click <b>Run</b> to refresh the preview and show the latest error lines.</div>
+        <div class="error-help">After you click <b>Run</b>, errors will appear here. Red line numbers mean errors. Orange line numbers mean warnings.</div>
+      `;
+      previewArea.innerHTML = `<div class="compile-box">Code changed. Click <b>Run</b> to refresh the possible output preview.</div>`;
+    }
+
+    function analyzeCode(code) {
+      const errors = [];
+      const warnings = [];
+      const tips = [];
+      const errorLines = new Set();
+      const warningLines = new Set();
+      const lines = code.split('\n');
+      const classMatch = code.match(/class\s+([A-Za-z_]\w*)/);
+      const classLine = classMatch ? getLineNumberFromIndex(code, classMatch.index) : 1;
+      const constructorPattern = classMatch ? new RegExp(`public\\s+${classMatch[1]}\\s*\\(`) : null;
+      const constructorMatch = constructorPattern ? code.match(constructorPattern) : null;
+
+      if (!/import\s+javax\.swing\.\*;/.test(code)) addIssue(errors, errorLines, 'Missing import javax.swing.*;', 1);
+      if (!/import\s+java\.awt\.\*;/.test(code)) addIssue(errors, errorLines, 'Missing import java.awt.*;', 2);
+      if (!/extends\s+JFrame/.test(code)) addIssue(errors, errorLines, 'Missing extends JFrame in the class declaration.', classLine);
+      if (!/public\s+static\s+void\s+main\s*\(\s*String\[\]\s+\w+\s*\)/.test(code)) addIssue(errors, errorLines, 'Missing main method.', classLine);
+      if (!classMatch) addIssue(errors, errorLines, 'Missing class declaration.', 1);
+      if (classMatch && !constructorMatch) addIssue(errors, errorLines, `Constructor name should match the class name "${classMatch[1]}".`, classLine);
+      if (!/setVisible\s*\(\s*true\s*\)\s*;/.test(code)) addIssue(errors, errorLines, 'Missing setVisible(true);', lines.length);
+      if (!/setTitle\s*\(/.test(code)) addIssue(warnings, warningLines, 'No setTitle() found. Your window may still work, but most exam outputs include a title.', classLine);
+      if (!/setSize\s*\(/.test(code)) addIssue(warnings, warningLines, 'No setSize() found. The frame size is usually set in exam problems.', classLine);
+      if (!/setDefaultCloseOperation\s*\(\s*JFrame\.EXIT_ON_CLOSE\s*\)\s*;/.test(code)) addIssue(warnings, warningLines, 'Missing setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);', classLine);
+      if (!/setLocationRelativeTo\s*\(\s*null\s*\)\s*;/.test(code)) addIssue(warnings, warningLines, 'Missing setLocationRelativeTo(null);', classLine);
+      if (!/add\s*\(/.test(code)) addIssue(warnings, warningLines, 'No add(...) statements found. The UI may be empty.', classLine);
+
+      const braceInfo = findUnmatchedPairs(code, '{', '}');
+      braceInfo.extraCloseLines.forEach(line => addIssue(errors, errorLines, 'Extra closing brace "}" found.', line));
+      braceInfo.extraOpenLines.forEach(line => addIssue(errors, errorLines, 'Opening brace "{" does not have a matching closing brace.', line));
+
+      const parenInfo = findUnmatchedPairs(code, '(', ')');
+      parenInfo.extraCloseLines.forEach(line => addIssue(errors, errorLines, 'Extra closing parenthesis ")" found.', line));
+      parenInfo.extraOpenLines.forEach(line => addIssue(errors, errorLines, 'Opening parenthesis "(" does not have a matching closing parenthesis.', line));
+
+      lines.forEach((line, index) => {
+        const t = line.trim();
+        const lineNo = index + 1;
+        if (!t || t.startsWith('//')) return;
+
+        const quoteCount = (line.match(/(?<!\\)"/g) || []).length;
+        if (quoteCount % 2 !== 0) addIssue(errors, errorLines, 'Unbalanced double quotes found.', lineNo);
+
+        if (/\bJlabel\b/.test(t)) addIssue(errors, errorLines, 'Possible typo: use JLabel, not Jlabel.', lineNo);
+        if (/\bJtextField\b/.test(t)) addIssue(errors, errorLines, 'Possible typo: use JTextField, not JtextField.', lineNo);
+        if (/\bJbutton\b/.test(t)) addIssue(errors, errorLines, 'Possible typo: use JButton, not Jbutton.', lineNo);
+        if (/\bGridlayout\b/.test(t)) addIssue(errors, errorLines, 'Possible typo: use GridLayout, not Gridlayout.', lineNo);
+        if (/\bBorderlayout\b/.test(t)) addIssue(errors, errorLines, 'Possible typo: use BorderLayout, not Borderlayout.', lineNo);
+        if (/\bsetTitel\b/.test(t)) addIssue(errors, errorLines, 'Possible typo: use setTitle, not setTitel.', lineNo);
+        if (/\bpubic\b/.test(t)) addIssue(errors, errorLines, 'Possible typo: use public, not pubic.', lineNo);
+
+        const needsSemicolon = !/[;{}]$/.test(t) && !t.endsWith(',') && !/^(@|class\s|public\s+static\s+void\s+main\b|public\s+[A-Za-z_]\w*\s*\(|if\b|for\b|while\b|switch\b|else\b|do\b)/.test(t);
+        if (needsSemicolon && (/set[A-Z]\w*\(|add\(|new\s|=|return\b|\.add\(|\.set/.test(t))) {
+          addIssue(warnings, warningLines, `This line may be missing a semicolon: ${t}`, lineNo);
+        }
+
+        if (/ActionListener|actionPerformed|addActionListener/.test(t)) {
+          addIssue(warnings, warningLines, 'Event-handling syntax found. For a UI-only exam, you usually do not need this.', lineNo);
+        }
+
+        if (/JTextArea/.test(t) && !/JScrollPane/.test(code)) {
+          addIssue(warnings, warningLines, 'JTextArea found without JScrollPane. Large output areas are usually placed inside JScrollPane.', lineNo);
+        }
+      });
+
+      if (/JTextField/.test(code) && !/setEditable\s*\(\s*false\s*\)/.test(code) && /Result/i.test(code)) tips.push('If the result box should not be typed, use resultField.setEditable(false);');
+      if (/GridLayout\s*\(\s*5\s*,\s*2/.test(code)) tips.push('GridLayout(5, 2, 10, 10) is a good pattern for 3 inputs + result + button row.');
+      if (/JComboBox/.test(code)) tips.push('JComboBox is the correct choice for dropdown exam problems.');
+      if (/new\s+Color\s*\(/.test(code)) tips.push('Color lines are optional, but they can make your UI look cleaner in the exam.');
+      if (/BorderLayout/.test(code)) tips.push('BorderLayout is useful when you want title on top, form in center, and buttons below.');
+      if (!/extends\s+JFrame/.test(code) && /JFrame/.test(code)) tips.push('Most of your practice patterns use: class Name extends JFrame');
+
+      return { errors, warnings, tips, errorLines, warningLines };
+    }
+
+    function buildPreviewFromCode(code) {
+      const layout = extractLayout(code);
+      const title = extractTitle(code);
+      const className = extractClassName(code);
+      const labels = getAddLabels(code).filter(Boolean);
+      const quoted = findQuotedStrings(code);
+      const buttonLabels = getButtons(code);
+      const uiLabels = labels.filter(l => l !== '');
+      const titleLabels = [...code.matchAll(/new\s+JLabel\s*\(\s*"([^"]+)"\s*,\s*JLabel\.CENTER\s*\)/g)].map(m => m[1]);
+      const textFieldCount = (code.match(/new\s+JTextField\s*\(/g) || []).length;
+      const comboCount = (code.match(/new\s+JComboBox\s*</g) || []).length;
+      const textAreaCount = (code.match(/new\s+JTextArea\s*\(/g) || []).length;
+      const radioCount = (code.match(/new\s+JRadioButton\s*\(/g) || []).length;
+      const checkCount = (code.match(/new\s+JCheckBox\s*\(/g) || []).length;
+
+      const shownTitle = title !== '-' ? title : className;
+      const heading = titleLabels[0] || '';
+      const formRows = [];
+      const labelsForFields = uiLabels.slice(0, Math.max(uiLabels.length, 0));
+
+      if (comboCount > 0) {
+        const comboLabels = labelsForFields.slice(0, comboCount);
+        comboLabels.forEach(lbl => formRows.push(`<div class="s-label">${escapeHtml(lbl)}</div><div class="combo">Option</div>`));
+        if (labelsForFields[comboCount]) formRows.push(`<div class="s-label">${escapeHtml(labelsForFields[comboCount])}</div><div class="field"></div>`);
+      } else if (textAreaCount > 0) {
+        const topLabels = labelsForFields.slice(0, Math.min(2, labelsForFields.length));
+        topLabels.forEach(lbl => formRows.push(`<div class="s-label">${escapeHtml(lbl)}</div><div class="field"></div>`));
+      } else if (radioCount > 0 || checkCount > 0) {
+        if (labelsForFields[0]) formRows.push(`<div class="s-label">${escapeHtml(labelsForFields[0])}</div><div class="field"></div>`);
+        if (labelsForFields[1]) formRows.push(`<div class="s-label">${escapeHtml(labelsForFields[1])}</div><div class="options-row"><span class="radio"><span class="box circle"></span>Option</span><span class="radio"><span class="box circle"></span>Option</span></div>`);
+        if (labelsForFields[2]) formRows.push(`<div class="s-label">${escapeHtml(labelsForFields[2])}</div><div class="options-row"><span class="check"><span class="box"></span>Option</span><span class="check"><span class="box"></span>Option</span><span class="check"><span class="box"></span>Option</span></div>`);
+      } else {
+        labelsForFields.slice(0, Math.max(1, textFieldCount || labelsForFields.length || 4)).forEach(lbl => {
+          formRows.push(`<div class="s-label">${escapeHtml(lbl)}</div><div class="field"></div>`);
+        });
+      }
+
+      const btnText = buttonLabels[0] || 'Button';
+      const notes = [];
+      notes.push(`<b>Detected layout:</b> ${escapeHtml(layout)}`);
+      notes.push(`<b>Detected class:</b> ${escapeHtml(className)}`);
+      if (comboCount) notes.push(`<b>Detected dropdowns:</b> ${comboCount}`);
+      if (textFieldCount) notes.push(`<b>Detected text fields:</b> ${textFieldCount}`);
+      if (textAreaCount) notes.push(`<b>Detected text areas:</b> ${textAreaCount}`);
+      if (radioCount) notes.push(`<b>Detected radio buttons:</b> ${radioCount}`);
+      if (checkCount) notes.push(`<b>Detected check boxes:</b> ${checkCount}`);
+
+      const summary = `
+        <div class="summary-grid">
+          <div class="summary-card">${notes.join('<br>')}</div>
+          <div class="summary-card"><b>Possible output:</b><br>${comboCount ? 'dropdown form' : textAreaCount ? 'form with text area output' : (radioCount || checkCount) ? 'choice form' : 'text-field form'} that matches your current Java code structure.</div>
+        </div>`;
+
+      if (textAreaCount > 0) {
+        return `${summary}
+          <div class="swing-window">
+            <div class="swing-titlebar"><span>${escapeHtml(shownTitle)}</span><div class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div></div>
+            <div class="swing-body" style="background:#fff;">
+              ${heading ? `<div class="swing-heading">${escapeHtml(heading)}</div>` : ''}
+              <div class="grid-form" style="margin-bottom:12px;">${formRows.join('')}</div>
+              <div class="area"></div>
+              <div class="button-row"><span class="s-btn">${escapeHtml(btnText)}</span></div>
+            </div>
+          </div>
+          <div class="compile-box">This preview is generated from your current code, so it changes when you edit labels, title, or component types.</div>`;
+      }
+
+      return `${summary}
+        <div class="swing-window">
+          <div class="swing-titlebar"><span>${escapeHtml(shownTitle)}</span><div class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div></div>
+          <div class="swing-body" style="background:${layout === 'BorderLayout' ? '#fff' : '#f8fafc'};">
+            ${heading ? `<div class="swing-heading">${escapeHtml(heading)}</div>` : ''}
+            <div class="grid-form">${formRows.join('')}</div>
+            <div class="button-row"><span class="s-btn">${escapeHtml(btnText)}</span></div>
+          </div>
+        </div>
+        <div class="compile-box">This is a browser-based simulation, not a real Java compiler. It is meant to help you memorize how the Swing UI may look.</div>`;
+    }
+
+    function renderChecker(code) {
+      const { errors, warnings, tips, errorLines, warningLines } = analyzeCode(code);
+      let stateClass = 'state-ok';
+      let stateTitle = 'Run successful';
+      let stateText = 'No major common mistakes found from the checker. Your UI-only Swing structure looks practice-ready.';
+
+      if (errors.length) {
+        stateClass = 'state-err';
+        stateTitle = 'Possible errors found';
+        stateText = 'These are common issues that may stop the code from compiling or displaying correctly in Java. Look at the red line numbers and use the line buttons below.';
+        showRunNotice('error', `<b>Run finished with errors</b> — ${errors.length} error(s) and ${warnings.length} warning(s) found. Check the <b>Code Checker</b> below. Click a <b>Line</b> button to jump to the problem.`);
+      } else if (warnings.length) {
+        stateClass = 'state-warn';
+        stateTitle = 'Run successful with warnings';
+        stateText = 'The code may still be okay, but these parts should be reviewed before you type it in Notepad.';
+        showRunNotice('warn', `<b>Run successful</b> — No common compile-blocking errors found, but there are ${warnings.length} warning(s) to review below.`);
+      } else {
+        showRunNotice('success', '<b>Run successful</b> — No common compile-blocking errors were detected. The possible output preview was updated.');
+      }
+
+      checker.innerHTML = `
+        <h3>Code Checker</h3>
+        <div class="box-state ${stateClass}"><b>${stateTitle}</b><br>${stateText}</div>
+        <div class="summary-grid">
+          <div class="summary-card"><b>Error count:</b> ${errors.length}</div>
+          <div class="summary-card"><b>Warning count:</b> ${warnings.length}</div>
+        </div>
+        <div class="box-state ${errors.length ? 'state-err' : 'state-ok'}"><b>Errors</b>${errors.length ? `<ul>${errors.map(formatIssue).join('')}</ul>` : '<ul><li>No common compile-blocking errors detected.</li></ul>'}</div>
+        <div class="box-state ${warnings.length ? 'state-warn' : 'state-ok'}"><b>Warnings</b>${warnings.length ? `<ul>${warnings.map(formatIssue).join('')}</ul>` : '<ul><li>No warning found from the practice checker.</li></ul>'}</div>
+        <div class="box-state state-ok"><b>Study tips</b>${tips.length ? `<ul>${tips.map(t => `<li>${escapeHtml(t)}</li>`).join('')}</ul>` : '<ul><li>Keep practicing the class, main method, constructor, layout, add(), and setVisible(true); pattern.</li></ul>'}</div>
+        <div class="error-help"><b>Where to see the errors:</b> the list above, the red or orange line numbers beside the editor, and the selected line after you click any <b>Line</b> button.</div>
+      `;
+      updateLineNumbers({ errors: errorLines, warnings: warningLines });
+
+      if (errors.length) {
+        const firstError = Math.min(...errorLines);
+        scrollEditorToLine(firstError);
+        checker.scrollTop = 0;
+      }
+    }
+
+    function runCode() {
+      const code = editor.value;
+      classNameText.textContent = 'Class: ' + extractClassName(code);
+      titleText.textContent = 'Title: ' + extractTitle(code);
+      previewArea.innerHTML = buildPreviewFromCode(code);
+      renderChecker(code);
+    }
+
+    function loadTemplate() {
+      const key = templateSelect.value;
+      editor.value = templates[key].code;
+      updateEditorMeta();
+      runCode();
+    }
+
+    loadBtn.addEventListener('click', loadTemplate);
+    runBtn.addEventListener('click', runCode);
+    checker.addEventListener('click', (event) => {
+      const btn = event.target.closest('.jump-line');
+      if (!btn) return;
+      const line = Number(btn.dataset.line || 1);
+      scrollEditorToLine(line);
+    });
+
+    copyBtn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(editor.value);
+        copyBtn.textContent = 'Copied';
+        setTimeout(() => copyBtn.textContent = 'Copy Code', 1200);
+      } catch (e) {
+        copyBtn.textContent = 'Copy failed';
+        setTimeout(() => copyBtn.textContent = 'Copy Code', 1200);
+      }
+    });
+
+    editor.addEventListener('input', () => {
+      updateEditorMeta();
+      markNeedsRun();
+    });
+
+    editor.addEventListener('scroll', () => {
+      lineNumbers.scrollTop = editor.scrollTop;
+    });
+
+    templateSelect.value = 'skeleton';
+    loadTemplate();
+  </script>
+</body>
+</html>
